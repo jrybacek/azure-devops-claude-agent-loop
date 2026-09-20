@@ -3,12 +3,31 @@
 Nothing is hard-coded: no board name, tag, path, repository, or threshold. Configuration
 lives in [`src/appsettings.json`](../src/appsettings.json), overridable by environment
 variables using the standard double-underscore section separator (for example
-`AdoClaudeLoop__Limits__MaxClaimsPerCycle=2`), bound to strongly typed options classes and
-**validated on startup with a clear, specific error per missing or invalid setting.**
+`AdoClaudeLoop__Limits__MaxClaimsPerCycle=2`), bound to strongly typed options classes under
+[`src/Configuration/`](../src/Configuration/) and **validated on startup with a clear,
+specific error per missing or invalid setting** — a bad or missing value names exactly
+which setting failed and exits with a distinct code (`2`) rather than crashing partway
+through a cycle.
 
-> **Status:** the options classes and their validation are Phase 0 work
-> ([roadmap.md](roadmap.md)) — not implemented yet. This document describes the shape the
-> configuration document already has and what each section will bind to.
+## Local overrides (user secrets)
+
+Two settings ship blank in the checked-in `appsettings.json` because they're
+machine-specific: `AzureDevOps:Organization` and `ClaudeCode:ExecutablePath`. Rather than
+editing (and risking committing) real values into the file, set them locally with
+[.NET user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), which
+are stored outside the repo under your Windows profile:
+
+```powershell
+dotnet user-secrets set "AdoClaudeLoop:AzureDevOps:Organization" "my-org" --project src/AdoClaudeLoop.csproj
+dotnet user-secrets set "AdoClaudeLoop:ClaudeCode:ExecutablePath" "C:\tools\claude\claude.exe" --project src/AdoClaudeLoop.csproj
+```
+
+Precedence (lowest to highest): `appsettings.json` → user secrets → environment variables.
+User secrets are only loaded when `DOTNET_ENVIRONMENT=Development`, so a Task
+Scheduler/production run never looks for them. The Azure DevOps PAT itself is **not** part
+of this — it is never written to configuration at all, only read from the environment
+variable named by `AzureDevOps:PatEnvironmentVariable` (see [below](#azuredevops) and
+[azure-devops.md](azure-devops.md)).
 
 ## Root settings
 

@@ -12,12 +12,14 @@
     <Description>Console supervisor that drives Claude Code agents against Azure DevOps Boards.</Description>
     <RepositoryUrl>https://github.com/jrybacek/azure-devops-claude-agent-loop</RepositoryUrl>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <UserSecretsId>a1f4c8b2-6e3d-4b9a-9c7e-2d5f8a0b1c4e</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />

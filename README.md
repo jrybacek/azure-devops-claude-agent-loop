@@ -55,7 +55,10 @@ Configure [`src/appsettings.json`](src/appsettings.json) — organization, agent
 human owner, managed projects — then set the PAT in the environment variable it names
 (`ADO_CLAUDE_LOOP_PAT` by default). **Leave `DryRun: true`** until you've watched a few
 cycles of logged decisions and trust what it would do; see
-[docs/configuration.md](docs/configuration.md).
+[docs/configuration.md](docs/configuration.md). Machine-specific values like
+`AzureDevOps:Organization` and `ClaudeCode:ExecutablePath` can instead be set locally with
+`dotnet user-secrets` so you never edit or commit the checked-in file — see
+[Local overrides](docs/configuration.md#local-overrides-user-secrets).
 
 ```powershell
 dotnet run --project src\AdoClaudeLoop.csproj

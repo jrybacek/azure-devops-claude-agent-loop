@@ -1,7 +1,10 @@
+using System.Reflection;
+using AdoClaudeLoop.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Serilog;
 
 // This is a console app driven by Windows Task Scheduler, not an interactive terminal
@@ -17,9 +20,14 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     ContentRootPath = AppContext.BaseDirectory,
 });
 
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-    .AddEnvironmentVariables();
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
+if (builder.Environment.IsDevelopment())
+{
+    // Local-only overrides (e.g. AzureDevOps:Organization, ClaudeCode:ExecutablePath) live
+    // here instead of appsettings.json so they never get committed — see docs/configuration.md.
+    builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true);
+}
+builder.Configuration.AddEnvironmentVariables();
 
 var logDirectory = builder.Configuration["AdoClaudeLoop:Paths:LogDirectory"] ?? "logs";
 Directory.CreateDirectory(logDirectory);
@@ -30,13 +38,29 @@ builder.Services.AddSerilog((_, loggerConfig) => loggerConfig
         Path.Combine(logDirectory, "adoclaudeloop-.log"),
         rollingInterval: RollingInterval.Day));
 
-// TODO(Phase 0): bind AdoClaudeLoopOptions (and its nested sections) from configuration,
-// validate on startup per docs/configuration.md, acquire the lockfile at Paths.LockFile,
-// log a cycle start/end pair with zero sweeps registered, and exit zero. A second
-// concurrent instance must detect the held lock, log the conflict, and also exit zero.
-// See docs/roadmap.md for the full Phase 0 completion condition.
+builder.Services.AddAdoClaudeLoopOptions(builder.Configuration);
+
+// TODO(Phase 0): acquire the lockfile at Paths.LockFile, log a cycle start/end pair with
+// zero sweeps registered, and exit zero. A second concurrent instance must detect the held
+// lock, log the conflict, and also exit zero. See docs/roadmap.md for the full Phase 0
+// completion condition.
 
 using var host = builder.Build();
+
+try
+{
+    _ = host.Services.GetRequiredService<IOptions<AdoClaudeLoopOptions>>().Value;
+}
+catch (OptionsValidationException ex)
+{
+    var startupLogger = host.Services.GetRequiredService<ILogger<Program>>();
+    foreach (var failure in ex.Failures)
+    {
+        startupLogger.LogError("Invalid configuration: {Failure}", failure);
+    }
+
+    return 2;
+}
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("AdoClaudeLoop scaffold started; no sweeps are registered yet");
