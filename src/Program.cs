@@ -1,5 +1,6 @@
 using System.Reflection;
 using AdoClaudeLoop.Configuration;
+using AdoClaudeLoop.Locking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -40,16 +41,12 @@ builder.Services.AddSerilog((_, loggerConfig) => loggerConfig
 
 builder.Services.AddAdoClaudeLoopOptions(builder.Configuration);
 
-// TODO(Phase 0): acquire the lockfile at Paths.LockFile, log a cycle start/end pair with
-// zero sweeps registered, and exit zero. A second concurrent instance must detect the held
-// lock, log the conflict, and also exit zero. See docs/roadmap.md for the full Phase 0
-// completion condition.
-
 using var host = builder.Build();
 
+AdoClaudeLoopOptions options;
 try
 {
-    _ = host.Services.GetRequiredService<IOptions<AdoClaudeLoopOptions>>().Value;
+    options = host.Services.GetRequiredService<IOptions<AdoClaudeLoopOptions>>().Value;
 }
 catch (OptionsValidationException ex)
 {
@@ -63,6 +60,22 @@ catch (OptionsValidationException ex)
 }
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("AdoClaudeLoop scaffold started; no sweeps are registered yet");
+
+// Prevents two overlapping Task Scheduler triggers (or a manual run during a scheduled
+// one) from running a cycle concurrently — see docs/roadmap.md Phase 0.
+if (!ProcessLock.TryAcquire(options.Paths.LockFile, out var processLock))
+{
+    logger.LogWarning(
+        "Lock file {LockFile} is already held by another instance; exiting without running a cycle",
+        options.Paths.LockFile);
+
+    return 0;
+}
+
+using (processLock)
+{
+    logger.LogInformation("Cycle started; 0 sweeps registered");
+    logger.LogInformation("Cycle finished; 0 sweeps registered");
+}
 
 return 0;
