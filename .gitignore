@@ -55,3 +55,18 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# AdoClaudeLoop runtime artifacts (a local dev run of src/Program.cs writes these
+# relative to the working directory unless Paths in appsettings.json is overridden)
+*.lock
+/logs/
+
+# Ignore IDE files
+.vscode/
+
+# Ignore Rider/ReSharper user-specific solution settings
+*.DotSettings.user
+
+# Ignore Claude files
+.claude/
+tasks/

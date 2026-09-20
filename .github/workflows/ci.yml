@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+
+      - name: Restore
+        run: dotnet restore src/AdoClaudeLoop.sln
+
+      - name: Build
+        run: dotnet build src/AdoClaudeLoop.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test src/AdoClaudeLoop.sln -c Release --no-build
